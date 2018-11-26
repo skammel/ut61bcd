@@ -9,4 +9,7 @@ char *get_mode_str (char *mode_str, unsigned char *data);
 
 /* parse the given data and return tge value as double */
 double get_val (unsigned char *data);
+
+/* parse given data and return exponent for value (-6 for 1e-6 etc.) */
+int get_exponent(unsigned char *data);
 #endif

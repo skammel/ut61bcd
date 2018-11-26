@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+#include <time.h>
 #include "ut61bcd.h"
 #include "ut61bcd_ser.h"
 
@@ -35,17 +36,29 @@ int main (int argc, char **argv)
   unsigned char datastr[28] = "";
   int fd = -1;
   char tmpstr[255] = "";
+  FILE *fp = NULL;
 
   if (argc < 2)
    {
-     fprintf (stderr, "Usage: %s <dev>\n \
-     exaple: %s /dev/hidraw1\n", argv[0], argv[0]);
+     fprintf (stderr, "Usage: %s <dev> [output_cvs_file]\n \
+     exaple: %s /dev/hidraw1\n \
+             %s /dev/hidraw1 ./outfile.csv\n", argv[0], argv[0], argv[0]);
      return 1;
    }
 
   if ((fd = open_dev (argv[1])) < 0)
    {
      return 2;
+   }
+
+  if (argc == 3)
+   {
+     fp = fopen(argv[2], "w");
+     if(fp == NULL)
+      {
+        fprintf(stderr, "Error opening file '%s'!", argv[2]);
+        return 2;
+      }
    }
 
   /* set stdin to none-blocking */
@@ -62,8 +75,15 @@ int main (int argc, char **argv)
      printf (" %7.3lf %s           \r", get_val (datastr),
              get_mode_str (tmpstr, datastr));
      fflush (stdout);
+
+     if(fp != NULL)
+      {
+        sprintf(tmpstr, "%lu; %7.3lf; 1e%d \n", (unsigned long)time(NULL), get_val(datastr), get_exponent(datastr));
+        fputs(tmpstr, fp);
+      }
    }
 
+  fclose(fp);
   close_dev (fd);
   return 0;
 }
@@ -124,4 +144,12 @@ char *get_mode_str (char *mode_str, unsigned char *data)
    }
 
   return mode_str;
+}
+
+int get_exponent(unsigned char *data){
+    if(data[9] & 0x80) return -6;
+    if(data[9] & 0x40) return -3;
+    if(data[9] & 0x20) return 3;
+    if(data[9] & 0x10) return 6;
+    return 0;
 }
